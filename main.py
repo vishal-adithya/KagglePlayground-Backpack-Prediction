@@ -30,8 +30,8 @@ def Preprocessing(df):
     df["Laptop Compartment"] = df["Laptop Compartment"].map(lambda x:0 if x=="No" else 1)
     df["Waterproof"] = df["Waterproof"].map(lambda x:0 if x=="No" else 1)
     
-    color = pd.get_dummies(df["Color"],prefix = "Color_",dtype=int)
-    style = pd.get_dummies(df["Style"],prefix = "Style_",dtype=int)
+    color = pd.get_dummies(df["Color"],prefix = "Color",dtype=int)
+    style = pd.get_dummies(df["Style"],prefix = "Style",dtype=int)
     
     df["Brand"] = brands
     df["Material"] = mats
@@ -43,4 +43,20 @@ def Preprocessing(df):
     
     return df
 
-preprocessed_df = Preprocessing(df=df)
+preprocessed_df = Preprocessing(df=df)  
+X = preprocessed_df.drop(columns = ["Price"])
+y = df["Price"]
+dtrain = xgb.DMatrix(data = X,label=y)
+model = xgb.XGBRegressor(objective = "reg:squarederror",device = "gpu",n_estimators = 100,n_jobs = 1,max_depth = 5)
+model.fit(X,y)
+
+test_df = pd.read_csv("D:/KagglePlayground-Backpack-Prediction/Data/test.csv")
+test_df.set_index("id",inplace = True)
+test_df = Preprocessing(test_df)
+
+test_df["Price_Prediction"] = model.predict(test_df)
+
+submission = pd.read_csv("D:/KagglePlayground-Backpack-Prediction/Data/sample_submission.csv")
+submission["Price"] = test_df["Price_Prediction"]
+submission.set_index("id",inplace = True)
+submission.to_csv("submission.csv")
