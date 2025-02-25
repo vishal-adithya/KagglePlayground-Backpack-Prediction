@@ -10,7 +10,10 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GridSearchCV,RandomizedSearchCV
+
+import warnings
+warnings.filterwarnings("ignore")
 
 
 df = pd.read_csv("D:/KagglePlayground-Backpack-Prediction/Data/train.csv")
@@ -50,13 +53,39 @@ dtrain = xgb.DMatrix(data = X,label=y)
 model = xgb.XGBRegressor(objective = "reg:squarederror",device = "gpu",n_estimators = 100,n_jobs = 1,max_depth = 5)
 model.fit(X,y)
 
+est = xgb.XGBRegressor(objective="reg:squarederror",
+                       device = "cuda",
+                       n_jobs = 1,
+                       predictor = "gpu_predictor",
+                       tree_method = "hist",verbosity = 2,booster = "gblinear")
+
+param_grid = {"max_depth":[5,7,9],
+              "learning_eate":[0.1,0.01,0.2],
+              "colsample_bytree":[0.5,0.7,0.9],
+              "gamma":[0,3,6]}
+
+rsv = RandomizedSearchCV(estimator=est, param_distributions=param_grid,verbose=3,n_jobs=1,cv = 10,n_iter = 15,scoring="neg_root_mean_squared_error")    
+rsv.fit(X,y)
+
+best_est = rsv.best_estimator_
+
+rsv.best_params_
+
+
+gsv = GridSearchCV(estimator=est,param_grid=param_grid,verbose=3,n_jobs=1,cv = 10,scoring="neg_root_mean_squared_error")    
+gsv.fit(X,y)
+gsv.best_params_
+
+best_est = gsv.best_estimator_
+
+
+
 test_df = pd.read_csv("D:/KagglePlayground-Backpack-Prediction/Data/test.csv")
 test_df.set_index("id",inplace = True)
 test_df = Preprocessing(test_df)
 
-test_df["Price_Prediction"] = model.predict(test_df)
+test_df["Price"] = best_est.predict(test_df)
+pred = test_df["Price"]
+pred.to_csv("submission4.csv")
 
-submission = pd.read_csv("D:/KagglePlayground-Backpack-Prediction/Data/sample_submission.csv")
-submission["Price"] = test_df["Price_Prediction"]
-submission.set_index("id",inplace = True)
-submission.to_csv("submission.csv")
+submission = pd.read_csv("D:/KagglePlayground-Backpack-Prediction/submission3.csv")
