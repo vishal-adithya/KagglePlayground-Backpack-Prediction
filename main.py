@@ -19,6 +19,8 @@ warnings.filterwarnings("ignore")
 df = pd.read_csv("D:/KagglePlayground-Backpack-Prediction/Data/train.csv")
 df.set_index("id",inplace = True)
 
+df["Brand"]
+
 
 df.isnull().sum()
 df.dropna(how = "any",inplace = True)
@@ -60,7 +62,7 @@ est = xgb.XGBRegressor(objective="reg:squarederror",
                        tree_method = "hist",verbosity = 2,booster = "gblinear")
 
 param_grid = {"max_depth":[5,7,9],
-              "learning_eate":[0.1,0.01,0.2],
+              "learning_rate":[0.1,0.01,0.2],
               "colsample_bytree":[0.5,0.7,0.9],
               "gamma":[0,3,6]}
 
@@ -75,17 +77,3 @@ rsv.best_params_
 gsv = GridSearchCV(estimator=est,param_grid=param_grid,verbose=3,n_jobs=1,cv = 10,scoring="neg_root_mean_squared_error")    
 gsv.fit(X,y)
 gsv.best_params_
-
-best_est = gsv.best_estimator_
-
-
-
-test_df = pd.read_csv("D:/KagglePlayground-Backpack-Prediction/Data/test.csv")
-test_df.set_index("id",inplace = True)
-test_df = Preprocessing(test_df)
-
-test_df["Price"] = best_est.predict(test_df)
-pred = test_df["Price"]
-pred.to_csv("submission4.csv")
-
-submission = pd.read_csv("D:/KagglePlayground-Backpack-Prediction/submission3.csv")
